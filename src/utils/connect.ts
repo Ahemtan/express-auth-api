@@ -1,14 +1,14 @@
 import mongoose from "mongoose";
+import logger from "./logger";
 
 async function connect() {
-
-  const dbUri = process.env.MONGO_URI ?? 'mongodb://localhost:27017/defaultdb'
+  const dbUri = process.env.MONGO_URI ?? "mongodb://localhost:27017/defaultdb";
 
   try {
-    console.log('Connected to database succesfully.')
-    return mongoose.connect(dbUri);
+    await mongoose.connect(dbUri);
+    logger.info("Connected to database sucessfully.");
   } catch (error) {
-    console.log("Cound not connect to database!");
+    logger.error(`Cound not connect to database! ${error}`);
     process.exit(1);
   }
 }

@@ -7,15 +7,16 @@ import logger from "./utils/logger";
 const dotenv = require("dotenv").config();
 const port = config.get<number>("port");
 
-import routes from "./route";
+import router from "./routes";
 
 
 const app = express();
+
+app.use(router);
 
 app.listen(port, async () => {
   logger.info(`App is running on port ${port}`);
 
   await connect();
 
-  routes(app);
 });
