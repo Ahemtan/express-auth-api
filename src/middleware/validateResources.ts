@@ -12,9 +12,8 @@ const validateResource =
       });
       next();
     } catch (e: any) {
-      return res.sendStatus(400).send(e.errors);
+      return res.status(400).send(e.errors);
     }
   };
 
-
-export default validateResource
+export default validateResource;
