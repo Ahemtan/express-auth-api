@@ -1,10 +1,10 @@
+require("dotenv").config();
+
 import express from "express";
 import config from "config";
 
 import connect from "./utils/connect";
 import logger from "./utils/logger";
-
-const dotenv = require("dotenv").config();
 
 import router from "./routes";
 
