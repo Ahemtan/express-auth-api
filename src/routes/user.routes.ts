@@ -9,9 +9,11 @@ import {
 import {
   createUserHandler,
   forgetPasswordHandler,
+  getCurrentUserHandler,
   resetPasswordHandler,
   verifyUserHandler,
 } from "../controller/user.controller";
+import requireUser from "../middleware/requireLogin";
 
 const router = express.Router();
 
@@ -38,5 +40,7 @@ router.post(
   validateResource(resetPasswordSchema),
   resetPasswordHandler
 );
+
+router.get("/api/users/me", requireUser, getCurrentUserHandler)
 
 export default router;

@@ -1,10 +1,27 @@
-import { DocumentType } from "@typegoose/typegoose";
-import { User } from "../model/user.model";
 import { signJwt } from "../utils/jwt";
-import { SessionModel } from "../model/session.model";
+
+import { User } from "@prisma/client";
+import prismadb from "../lib/prisma";
+import { omit } from "lodash";
+
+const privateVal = ["password", "verificationCode", "passwordResetCode"];
 
 export async function createSession({ userId }: { userId: string }) {
-  return SessionModel.create({ user: userId });
+  return prismadb.session.create({
+    data: {
+      user: {
+        connect: { id: userId },
+      },
+    },
+  });
+}
+
+export async function findSessionById({ id }: { id: string }) {
+  return prismadb.session.findUnique({
+    where: {
+      id: id,
+    },
+  });
 }
 
 export async function signRefreshToken({ userId }: { userId: string }) {
@@ -14,16 +31,19 @@ export async function signRefreshToken({ userId }: { userId: string }) {
 
   const refreshToken = signJwt(
     {
-      session: session._id,
+      session: session.id,
     },
-    "refreshTokenPrivateKey"
+    "refreshTokenPrivateKey",
+    {
+      expiresIn: "30d",
+    }
   );
 
   return refreshToken;
 }
 
-export function signAcessToken(user: DocumentType<User>) {
-  const payload = user.toJSON();
+export function signAcessToken(user: User) {
+  const payload = omit(user, privateVal);
 
   const accessToken = signJwt(payload, "accessTokenPrivateKey", {
     expiresIn: "15m",

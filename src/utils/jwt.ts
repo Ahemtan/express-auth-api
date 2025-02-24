@@ -13,7 +13,7 @@ export function signJwt(
 
   return jwt.sign(object, signingKey, {
     ...(options && options),
-    algorithm: "RS256",
+    algorithm: 'RS256',  // Specify a single algorithm, such as RS256
   });
 }
 

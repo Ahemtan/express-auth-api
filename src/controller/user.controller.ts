@@ -13,6 +13,7 @@ import {
 import sendEmail from "../utils/mailer";
 import log from "../utils/logger";
 import { nanoid } from "nanoid";
+import prismadb from "../lib/prisma";
 
 export async function createUserHandler(
   req: Request<{}, {}, CreateUserInput>,
@@ -27,12 +28,12 @@ export async function createUserHandler(
       from: "test@ahem.com",
       to: user.email,
       subject: "Please Verify your email.",
-      text: `verification code ${user.verificationCode}. Id: ${user._id}`,
+      text: `verification code ${user.verificationCode}. Id: ${user.id}`,
     });
 
     return res.send("User successfully created.");
   } catch (error: any) {
-    if (error.code == 11000) {
+    if (error.code == "P2002") {
       return res.status(409).send("Account already exists");
     }
 
@@ -60,7 +61,14 @@ export async function verifyUserHandler(
   if (user.verificationCode === verificationCode) {
     user.verified = true;
 
-    await user.save();
+    await prismadb.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        verified: true,
+      },
+    });
 
     return res.send("User successfully verified");
   }
@@ -90,15 +98,20 @@ export async function forgetPasswordHandler(
 
   const passwordResetCode = nanoid();
 
-  user.passwordResetCode = passwordResetCode;
-
-  await user.save();
+  await prismadb.user.update(
+    {
+      where: { email: email},
+      data: {
+        passwordResetCode
+      }
+    }
+  );
 
   await sendEmail({
     to: user.email,
     from: "test@example.com",
     subject: "Reset your password",
-    text: `Password Reset code ${passwordResetCode}. Id ${user._id}`,
+    text: `Password Reset code ${passwordResetCode}. Id ${user.id}`,
   });
 
   return res.send(message);
@@ -121,12 +134,21 @@ export async function resetPasswordHandler(
     return res.status(400).send(`could not reset user password`)
   }
 
-  user.passwordResetCode = null
+  const nullData = null
 
-  user.password = password;
+  // user.password = password;
 
-  await user.save();
+  await prismadb.user.update({
+    where: { id: id },
+    data: {
+      passwordResetCode : nullData,
+      password: password
+    }
+  });
 
   return res.send("Successfully updated password");
 }
 
+export async function getCurrentUserHandler(req: Request, res: Response) {
+  return res.send(res.locals.user)
+}
