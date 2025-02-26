@@ -3,7 +3,6 @@ import { CreateSessionInput } from "../schema/auth.schema";
 import { findUserByEmail, findUserById } from "../services/user.service";
 import { findSessionById, signAcessToken, signRefreshToken } from "../services/auth.service";
 import argon from "argon2";
-import { get } from "lodash";
 import { verifyJwt } from "../utils/jwt";
 
 export async function createSessionHandler(
@@ -21,20 +20,21 @@ export async function createSessionHandler(
   }
 
   if (!user?.verified) {
-    return res.send("Please verify your account");
+    return res.status(403).send("Please verify your account");
   }
 
   const isValid = await validatePassword(password, user.password);
 
   if (!isValid) {
-    return res.send(message + "invalidPass");
+    return res.status(401).send(message);
   }
 
-  const acessToken = signAcessToken(user);
+  const acessToken = signAcessToken(user, res);
 
-  const refreshToken = await signRefreshToken({ userId: String(user.id) });
+  const refreshToken = await signRefreshToken(res, { userId: String(user.id) });
 
   return res.send({
+    user,
     acessToken,
     refreshToken,
   });
@@ -42,10 +42,10 @@ export async function createSessionHandler(
 
 export async function refreshAccessTokenHandler(req: Request, res: Response) {
   
-  const refreshToken = get(req, 'headers.x-refresh') as string;
+  const refreshToken = req.cookies.refreshToken as string;
 
   if (!refreshToken) {
-    return res.status(400).send("Refresh token is required");
+    return res.status(401).send("Refresh token is required");
   }
 
   const decoded = verifyJwt<{session: string}>(refreshToken, 'refreshTokenPublicKey')
@@ -66,7 +66,7 @@ export async function refreshAccessTokenHandler(req: Request, res: Response) {
     return res.status(401).send("could not access refresh token")
   }
 
-  const accessToken = signAcessToken(user);
+  const accessToken = signAcessToken(user, res);
 
   return res.send({ accessToken })
 }

@@ -14,6 +14,8 @@ import sendEmail from "../utils/mailer";
 import log from "../utils/logger";
 import { nanoid } from "nanoid";
 import prismadb from "../lib/prisma";
+import { verifyJwt } from "../utils/jwt";
+import { findSessionById, logout } from "../services/auth.service";
 
 export async function createUserHandler(
   req: Request<{}, {}, CreateUserInput>,
@@ -37,7 +39,9 @@ export async function createUserHandler(
       return res.status(409).send("Account already exists");
     }
 
-    return res.status(500).send(error);
+    console.log(error)
+
+    return res.status(401).send(error);
   }
 }
 
@@ -151,4 +155,26 @@ export async function resetPasswordHandler(
 
 export async function getCurrentUserHandler(req: Request, res: Response) {
   return res.send(res.locals.user)
+}
+
+export async function logoutHandler(req: Request, res: Response) {
+
+  const refreshToken = req.cookies.refreshToken as string;
+
+  const decoded = verifyJwt<{session: string}>(refreshToken, 'refreshTokenPublicKey')
+  
+  if(!decoded) {
+    return res.status(401).send("could not access logout")
+  }
+
+  const session = await findSessionById({ id: decoded.session})
+
+  if(!session || !session.valid) {
+    return res.status(401).send("invalid session id")
+  }
+
+  await logout(session.id);
+
+  return res.clearCookie("accessToken").clearCookie("refreshToken").status(200).send("logged out successfully")
+
 }

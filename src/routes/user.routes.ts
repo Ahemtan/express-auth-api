@@ -10,6 +10,7 @@ import {
   createUserHandler,
   forgetPasswordHandler,
   getCurrentUserHandler,
+  logoutHandler,
   resetPasswordHandler,
   verifyUserHandler,
 } from "../controller/user.controller";
@@ -41,6 +42,10 @@ router.post(
   resetPasswordHandler
 );
 
+router.get(
+  "/api/users/logout",
+  logoutHandler
+)
 router.get("/api/users/me", requireUser, getCurrentUserHandler)
 
 export default router;

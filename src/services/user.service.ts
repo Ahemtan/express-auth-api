@@ -4,7 +4,7 @@ import { User } from "@prisma/client";
 
 export async function createUser(input: Partial<User>) {
 
-  if (!input.email || !input.firstName || !input.lastName || !input.password) {
+  if (!input.email || !input.name || !input.password) {
     throw new Error("Missing required fields");
   }
 
@@ -12,8 +12,7 @@ export async function createUser(input: Partial<User>) {
 
   const userData = {
     email: input.email,
-    firstName: input.firstName,
-    lastName: input.lastName,
+    name: input.name,
     password: hashedPassword
   };
 

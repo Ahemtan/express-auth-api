@@ -6,5 +6,5 @@ import { createSessionHandler, refreshAccessTokenHandler } from "../controller/a
 const router = express.Router();
 
 router.post("/api/sessions", validateResource(createSessionSchema), createSessionHandler);
-router.post("/api/sessions/refresh", refreshAccessTokenHandler)
+router.get("/api/sessions/refresh", refreshAccessTokenHandler)
 export default router;
