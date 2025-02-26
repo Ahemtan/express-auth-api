@@ -1,11 +1,10 @@
 import nodemailer, { SendMailOptions } from "nodemailer";
 import log from "./logger";
 
-// UNCOMMENT BELOW CODE TO GET TEST SMTP
-// async function createTestCreds() {
-//     const creds = await nodemailer.createTestAccount();
-//     console.log({ creds });
-// }
+async function createTestCreds() {
+  const creds = await nodemailer.createTestAccount();
+  console.log({ creds });
+}
 
 // createTestCreds();
 
@@ -19,13 +18,20 @@ const transpoter = nodemailer.createTransport({
   },
 });
 
+const google_transpoter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.gmail_email,
+    pass: process.env.gmail_pass
+  }
+
+});
+
 async function sendEmail(payload: SendMailOptions) {
-  transpoter.sendMail(payload, (err, info) => {
+  google_transpoter.sendMail(payload, (err, info) => {
     if (err) {
       log.error(err, "Error sending email");
     }
-
-    log.info(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
   });
 }
 
