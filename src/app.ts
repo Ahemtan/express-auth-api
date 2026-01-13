@@ -11,6 +11,7 @@ import deserializeUser from "./middleware/deserializeUser";
 
 import cors from "cors";
 import { csrfMiddleware } from "./middleware/csrf";
+import { setupSwagger } from "./swagger";
 
 const app = express();
 
@@ -30,8 +31,15 @@ app.use(deserializeUser);
 
 app.use(router);
 
+if (process.env.NODE_ENV !== "production") {
+  setupSwagger(app);
+}
+
 const port = config.get<number>("port");
 
 app.listen(port, async () => {
-  logger.info(`App is running on port ${process.env.ORIGIN_URL}`);
+  logger.info(`App is running on port ${port}`);
+  if (process.env.NODE_ENV !== "production") {
+    logger.info(`Swagger docs available at http://localhost:${port}/swagger`);
+  }
 });
