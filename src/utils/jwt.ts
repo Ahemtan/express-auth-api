@@ -3,30 +3,25 @@ import config from "config";
 
 export function signJwt(
   object: Object,
-  keyName: "accessTokenPrivateKey" | "refreshTokenPrivateKey",
-  options?: jwt.SignOptions | undefined
+  keyName: "ACCESS_TOKEN_PRIVATE_KEY" | "REFRESH_PRIVATE_KEY",
+  options?: jwt.SignOptions
 ) {
-  const signingKey = Buffer.from(
-    config.get<string>(keyName),
-    "base64"
-  ).toString("ascii");
+  const secret = config.get<string>(keyName);
 
-  return jwt.sign(object, signingKey, {
+  return jwt.sign(object, secret, {
     ...(options && options),
-    algorithm: 'RS256',  // Specify a single algorithm, such as RS256
+    algorithm: "HS256",
   });
 }
 
 export function verifyJwt<T>(
   token: string,
-  keyName: "accessTokenPublicKey" | "refreshTokenPublicKey"
+  keyName: "ACCESS_TOKEN_PUBLIC_KEY" | "REFRESH_PUBLIC_KEY"
 ): T | null {
-  const publicKey = Buffer.from(config.get<string>(keyName), "base64").toString(
-    "ascii"
-  );
+  const secret = config.get<string>(keyName);
 
   try {
-    const decoded = jwt.verify(token, publicKey) as T;
+    const decoded = jwt.verify(token, secret) as T;
     return decoded;
   } catch (e) {
     return null;

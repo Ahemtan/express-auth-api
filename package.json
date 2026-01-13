@@ -3,7 +3,7 @@
   "module": "index.ts",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
-    "db:generate": "drizzle-kit generate --out src/db/migrations",
+    "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
     "build": "tsc",

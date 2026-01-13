@@ -42,7 +42,7 @@ const router = express.Router();
  */
 router.post(
   "/api/sessions",
-  validateResource(createSessionSchema),
+  validateResource({ body: createSessionSchema }),
   createSessionHandler
 );
 

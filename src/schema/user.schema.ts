@@ -1,59 +1,61 @@
-import { object, string, TypeOf } from "zod";
+import { object, string, TypeOf, ZodIssueCode } from "zod";
 
+// Signup / Create User
 export const createUserSchema = object({
-  body: object({
-    name: string({
-      required_error: "Name is required",
-    }),
-    password: string({
-      required_error: "Password is required",
-    }).min(6, "Password is too short - should be min 6 chars"),
-    passwordConfirmation: string({
-      required_error: "Password confirmation is required",
-    }),
-    email: string({
-      required_error: "Email is required",
-    }).email("Not a valid email"),
-  }).refine((data) => data.password === data.passwordConfirmation, {
-    message: "Passwords do not match",
-    path: ["passwordConfirmation"],
+  name: string({ required_error: "Name is required" }),
+  email: string({ required_error: "Email is required" }).email(
+    "Not a valid email"
+  ),
+  password: string({ required_error: "Password is required" }).min(
+    6,
+    "Password must be at least 6 characters"
+  ),
+  passwordConfirmation: string({
+    required_error: "Password confirmation is required",
   }),
+}).superRefine((data, ctx) => {
+  if (data.password !== data.passwordConfirmation) {
+    ctx.addIssue({
+      code: ZodIssueCode.custom,
+      message: "Passwords do not match",
+      path: ["passwordConfirmation"],
+    });
+  }
 });
 
+// Verify User Params
 export const verifyUserSchema = object({
-  params: object({
-    id: string(),
-    verificationCode: string(),
-  }),
+  id: string({ required_error: "ID is required" }),
+  verificationCode: string({ required_error: "Verification code is required" }),
 });
 
+// Forget Password
 export const forgetPasswordSchema = object({
-  body: object({
-    email: string({
-      required_error: "Email is required",
-    }).email("Not a valid email"),
-  }),
+  email: string({ required_error: "Email is required" }).email(
+    "Not a valid email"
+  ),
 });
 
+// Reset Password
 export const resetPasswordSchema = object({
-  params: object({
-    id: string(),
-    passwordResetCode: string(),
+  password: string({ required_error: "Password is required" }).min(
+    6,
+    "Password must be at least 6 characters"
+  ),
+  passwordConfirmation: string({
+    required_error: "Password confirmation is required",
   }),
-  body: object({
-    password: string({
-      required_error: "Password is required",
-    }).min(6, "Password is too short - should be min 6 chars"),
-    passwordConfirmation: string({
-      required_error: "Password confirmation is required",
-    }),
-  }).refine((data) => data.password === data.passwordConfirmation, {
-    message: "Passwords do not match",
-    path: ["passwordConfirmation"],
-  }),
+}).superRefine((data, ctx) => {
+  if (data.password !== data.passwordConfirmation) {
+    ctx.addIssue({
+      code: ZodIssueCode.custom,
+      message: "Passwords do not match",
+      path: ["passwordConfirmation"],
+    });
+  }
 });
 
-export type CreateUserInput = TypeOf<typeof createUserSchema>["body"];
-export type VerifyUserInput = TypeOf<typeof verifyUserSchema>["params"];
-export type ForgetPasswordInput = TypeOf<typeof forgetPasswordSchema>["body"];
+export type CreateUserInput = TypeOf<typeof createUserSchema>;
+export type VerifyUserInput = TypeOf<typeof verifyUserSchema>;
+export type ForgetPasswordInput = TypeOf<typeof forgetPasswordSchema>;
 export type ResetPasswordInput = TypeOf<typeof resetPasswordSchema>;

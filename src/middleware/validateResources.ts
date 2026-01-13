@@ -1,18 +1,27 @@
 import { Request, Response, NextFunction } from "express";
-import { AnyZodObject } from "zod";
+import { ZodTypeAny } from "zod";
+
+interface ValidationSchemas {
+  body?: ZodTypeAny;
+  query?: ZodTypeAny;
+  params?: ZodTypeAny;
+}
 
 const validateResource =
-  (schema: AnyZodObject) =>
+  ({ body, query, params }: ValidationSchemas) =>
   (req: Request, res: Response, next: NextFunction) => {
     try {
-      schema.parse({
-        body: req.body,
-        query: req.query,
-        params: req.params,
-      });
+      if (body) body.parse(req.body);
+      if (query) query.parse(req.query);
+      if (params) params.parse(req.params);
       next();
-    } catch (e: any) {
-      return res.status(400).send(e.errors);
+    } catch (err: any) {
+      return res.status(400).json({
+        errors: err.errors.map((e: any) => ({
+          field: e.path.join(".") || "(root)",
+          message: e.message,
+        })),
+      });
     }
   };
 

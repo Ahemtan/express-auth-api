@@ -6,13 +6,13 @@ const deserializeUser = async (
   res: Response,
   next: NextFunction
 ) => {
-  const accessToken = req.cookies.accessToken
+  const accessToken = req.cookies.accessToken;
 
   if (!accessToken) {
     return next();
   }
 
-  const decoded = verifyJwt(accessToken, "accessTokenPublicKey");
+  const decoded = verifyJwt(accessToken, "ACCESS_TOKEN_PUBLIC_KEY");
 
   if (decoded) {
     res.locals.user = decoded;

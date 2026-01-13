@@ -51,7 +51,7 @@ const router = express.Router();
  */
 router.post(
   "/api/users",
-  validateResource(createUserSchema),
+  validateResource({ body: createUserSchema }),
   createUserHandler
 );
 
@@ -84,7 +84,7 @@ router.post(
  */
 router.post(
   "/api/users/verify/:id/:verificationCode",
-  validateResource(verifyUserSchema),
+  validateResource({ body: verifyUserSchema }),
   verifyUserHandler
 );
 
@@ -106,7 +106,7 @@ router.post(
  */
 router.post(
   "/api/users/forgetpassword",
-  validateResource(forgetPasswordSchema),
+  validateResource({ body: forgetPasswordSchema }),
   forgetPasswordHandler
 );
 
@@ -139,7 +139,7 @@ router.post(
  */
 router.post(
   "/api/users/resetpassword/:id/:passwordResetCode",
-  validateResource(resetPasswordSchema),
+  validateResource({ body: resetPasswordSchema }),
   resetPasswordHandler
 );
 
