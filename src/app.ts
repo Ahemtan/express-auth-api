@@ -10,9 +10,9 @@ import router from "./routes";
 import deserializeUser from "./middleware/deserializeUser";
 
 import cors from "cors";
+import { csrfMiddleware } from "./middleware/csrf";
 
 const app = express();
-
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -25,6 +25,7 @@ app.use(
 );
 
 app.use(cookieParser());
+app.use(csrfMiddleware);
 app.use(deserializeUser);
 
 app.use(router);

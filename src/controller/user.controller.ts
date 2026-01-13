@@ -1,47 +1,51 @@
 import { Request, Response } from "express";
+import { nanoid } from "nanoid";
+import argon2 from "argon2";
+
 import {
   CreateUserInput,
   ForgetPasswordInput,
   ResetPasswordInput,
   VerifyUserInput,
 } from "../schema/user.schema";
+
 import {
   createUser,
   findUserByEmail,
   findUserById,
+  verifyUser,
+  setPasswordResetCode,
+  resetUserPassword,
 } from "../services/user.service";
+
+import { findSessionById, invalidateSession } from "../services/auth.service";
+
 import sendEmail from "../utils/mailer";
 import log from "../utils/logger";
-import { nanoid } from "nanoid";
-import prismadb from "../lib/prisma";
 import { verifyJwt } from "../utils/jwt";
-import { findSessionById, logout } from "../services/auth.service";
 
 export async function createUserHandler(
   req: Request<{}, {}, CreateUserInput>,
   res: Response
 ) {
-  const body = req.body;
-
   try {
-    const user = await createUser(body);
+    const user = await createUser(req.body);
 
     await sendEmail({
       from: "test@ahem.com",
       to: user.email,
-      subject: "Please Verify your email.",
-      text: `verification code ${user.verificationCode}. Id: ${user.id}`,
+      subject: "Verify your email",
+      text: `Verification code: ${user.verificationCode}\nUser ID: ${user.id}`,
     });
 
     return res.send("User successfully created.");
-  } catch (error: any) {
-    if (error.code == "P2002") {
+  } catch (err: any) {
+    if (err.code === "23505") {
       return res.status(409).send("Account already exists");
     }
 
-    console.log(error)
-
-    return res.status(401).send(error);
+    log.error(err);
+    return res.status(500).send("Could not create user");
   }
 }
 
@@ -49,35 +53,21 @@ export async function verifyUserHandler(
   req: Request<VerifyUserInput>,
   res: Response
 ) {
-  const id = req.params.id;
-  const verificationCode = req.params.verificationCode;
+  const { id, verificationCode } = req.params;
 
   const user = await findUserById(id);
 
-  if (!user) {
-    return res.send("Could not verify user.");
+  if (!user || user.verified) {
+    return res.send("Could not verify user");
   }
 
-  if (user.verified) {
-    return res.send("User is already verified");
+  if (user.verificationCode !== verificationCode) {
+    return res.send("Could not verify user");
   }
 
-  if (user.verificationCode === verificationCode) {
-    user.verified = true;
+  await verifyUser(user.id);
 
-    await prismadb.user.update({
-      where: {
-        id: user.id,
-      },
-      data: {
-        verified: true,
-      },
-    });
-
-    return res.send("User successfully verified");
-  }
-
-  return res.send("Could not verify user");
+  return res.send("User successfully verified");
 }
 
 export async function forgetPasswordHandler(
@@ -85,37 +75,25 @@ export async function forgetPasswordHandler(
   res: Response
 ) {
   const message =
-    "If a user with provided email is registered you will recive a password reset email.";
+    "If a user with that email exists, a reset link will be sent.";
 
   const { email } = req.body;
 
   const user = await findUserByEmail(email);
 
-  if (!user) {
-    log.debug(`User with email ${email} does not exists`);
+  if (!user || !user.verified) {
     return res.send(message);
   }
 
-  if (!user.verified) {
-    return res.send("User is not verified");
-  }
+  const resetCode = nanoid();
 
-  const passwordResetCode = nanoid();
-
-  await prismadb.user.update(
-    {
-      where: { email: email},
-      data: {
-        passwordResetCode
-      }
-    }
-  );
+  await setPasswordResetCode(user.id, resetCode);
 
   await sendEmail({
     to: user.email,
     from: "test@example.com",
     subject: "Reset your password",
-    text: `Password Reset code ${passwordResetCode}. Id ${user.id}`,
+    text: `Reset code: ${resetCode}\nUser ID: ${user.id}`,
   });
 
   return res.send(message);
@@ -125,56 +103,57 @@ export async function resetPasswordHandler(
   req: Request<ResetPasswordInput["params"], {}, ResetPasswordInput["body"]>,
   res: Response
 ) {
-
-  const {id, passwordResetCode} = req.params
-
-  const  { password } = req.body
+  const { id, passwordResetCode } = req.params;
+  const { password } = req.body;
 
   const user = await findUserById(id);
 
-
-  if(!user || !user.passwordResetCode || user.passwordResetCode !== passwordResetCode) 
-  {
-    return res.status(400).send(`could not reset user password`)
+  if (
+    !user ||
+    !user.passwordResetCode ||
+    user.passwordResetCode !== passwordResetCode
+  ) {
+    return res.status(400).send("Could not reset password");
   }
 
-  const nullData = null
+  const hashedPassword = await argon2.hash(password);
 
-  // user.password = password;
+  await resetUserPassword(user.id, hashedPassword);
 
-  await prismadb.user.update({
-    where: { id: id },
-    data: {
-      passwordResetCode : nullData,
-      password: password
-    }
-  });
-
-  return res.send("Successfully updated password");
+  return res.send("Password successfully updated");
 }
 
 export async function getCurrentUserHandler(req: Request, res: Response) {
-  return res.send(res.locals.user)
+  return res.send(res.locals.user);
 }
 
 export async function logoutHandler(req: Request, res: Response) {
-
   const refreshToken = req.cookies.refreshToken as string;
 
-  const decoded = verifyJwt<{session: string}>(refreshToken, 'refreshTokenPublicKey')
-  
-  if(!decoded) {
-    return res.status(401).send("could not access logout")
+  if (!refreshToken) {
+    return res.status(401).send("Unauthorized");
   }
 
-  const session = await findSessionById({ id: decoded.session})
+  const decoded = verifyJwt<{ session: string }>(
+    refreshToken,
+    "refreshTokenPublicKey"
+  );
 
-  if(!session || !session.valid) {
-    return res.status(401).send("invalid session id")
+  if (!decoded) {
+    return res.status(401).send("Unauthorized");
   }
 
-  await logout(session.id);
+  const session = await findSessionById({ id: decoded.session });
 
-  return res.clearCookie("accessToken").clearCookie("refreshToken").status(200).send("logged out successfully")
+  if (!session || !session.valid) {
+    return res.status(401).send("Unauthorized");
+  }
 
+  await invalidateSession(session.id);
+
+  return res
+    .clearCookie("accessToken")
+    .clearCookie("refreshToken")
+    .status(200)
+    .send("Logged out successfully");
 }
