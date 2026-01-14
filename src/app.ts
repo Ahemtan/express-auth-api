@@ -1,7 +1,6 @@
 require("dotenv").config();
 
 import express from "express";
-import config from "config";
 import cookieParser from "cookie-parser";
 
 import logger from "./utils/logger";
@@ -35,7 +34,7 @@ if (process.env.NODE_ENV !== "production") {
   setupSwagger(app);
 }
 
-const port = config.get<number>("port");
+const port = process.env.PORT || 4000;
 
 app.listen(port, async () => {
   logger.info(`App is running on port ${port}`);

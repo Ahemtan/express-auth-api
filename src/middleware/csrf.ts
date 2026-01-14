@@ -40,6 +40,7 @@ export function csrfMiddleware(
   const csrfCookie = req.cookies["csrfToken"];
   const csrfHeader = req.headers["x-csrf-token"];
   if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
+    console.log("CSRF validation failed", { csrfCookie, csrfHeader });
     return res.status(403).send("Invalid CSRF token");
   }
 

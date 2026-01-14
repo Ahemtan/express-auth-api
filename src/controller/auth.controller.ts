@@ -59,7 +59,7 @@ export async function createSessionHandler(
   const accessToken = signAccessToken(user, res);
 
   const refreshToken = await signRefreshToken(res, {
-    sessionId: session.id, // 🔐 bind token to session
+    sessionId: session.id,
   });
 
   const csrfToken = generateCsrfToken();
@@ -83,7 +83,7 @@ export async function refreshAccessTokenHandler(req: Request, res: Response) {
 
   const decoded = verifyJwt<{ session: string }>(
     refreshToken,
-    "refreshTokenPublicKey"
+    "REFRESH_PUBLIC_KEY"
   );
   if (!decoded) return res.status(401).send("Unauthorized");
 

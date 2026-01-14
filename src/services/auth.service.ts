@@ -39,13 +39,11 @@ export async function findSessionById({ id }: { id: string }) {
 
 export async function signRefreshToken(
   res: Response,
-  data: { sessionId: string } // ✅ Use sessionId instead of userId
+  data: { sessionId: string }
 ) {
-  const refreshToken = signJwt(
-    { session: data.sessionId }, // store session id in payload
-    "refreshTokenPrivateKey",
-    { expiresIn: "30d" }
-  );
+  const refreshToken = signJwt({ session: data.sessionId }, "refresh", {
+    expiresIn: "30d",
+  });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
@@ -60,7 +58,7 @@ export async function signRefreshToken(
 export function signAccessToken(user: User, res: Response) {
   const payload = omit(user, privateVal);
 
-  const accessToken = signJwt(payload, "accessTokenPrivateKey", {
+  const accessToken = signJwt(payload, "access", {
     expiresIn: "15m",
   });
 

@@ -1,29 +1,35 @@
 import jwt from "jsonwebtoken";
-import config from "config";
 
 export function signJwt(
-  object: Object,
-  keyName: "ACCESS_TOKEN_PRIVATE_KEY" | "REFRESH_PRIVATE_KEY",
+  payload: object,
+  type: "access" | "refresh",
   options?: jwt.SignOptions
 ) {
-  const secret = config.get<string>(keyName);
+  const secret =
+    type === "access"
+      ? process.env.ACCESS_TOKEN_SECRET
+      : process.env.REFRESH_TOKEN_SECRET;
 
-  return jwt.sign(object, secret, {
-    ...(options && options),
-    algorithm: "HS256",
-  });
+  if (!secret) throw new Error(`Missing ${type.toUpperCase()} token secret`);
+
+  return jwt.sign(payload, secret, options);
 }
 
 export function verifyJwt<T>(
   token: string,
-  keyName: "ACCESS_TOKEN_PUBLIC_KEY" | "REFRESH_PUBLIC_KEY"
+  type: "access" | "refresh"
 ): T | null {
-  const secret = config.get<string>(keyName);
-
   try {
-    const decoded = jwt.verify(token, secret) as T;
-    return decoded;
-  } catch (e) {
+    const secret =
+      type === "access"
+        ? process.env.ACCESS_TOKEN_SECRET
+        : process.env.REFRESH_TOKEN_SECRET;
+
+    if (!secret) throw new Error(`Missing ${type.toUpperCase()} token secret`);
+
+    return jwt.verify(token, secret) as T;
+  } catch (err) {
+    console.error("JWT verification failed:", err);
     return null;
   }
 }

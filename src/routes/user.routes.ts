@@ -15,6 +15,7 @@ import {
   verifyUserHandler,
 } from "../controller/user.controller";
 import requireUser from "../middleware/requireLogin";
+import deserializeUser from "../middleware/deserializeUser";
 
 const router = express.Router();
 
@@ -173,6 +174,11 @@ router.get("/api/users/logout", logoutHandler);
  *       401:
  *         description: Unauthorized
  */
-router.get("/api/users/me", requireUser, getCurrentUserHandler);
+router.get(
+  "/api/users/me",
+  deserializeUser,
+  requireUser,
+  getCurrentUserHandler
+);
 
 export default router;

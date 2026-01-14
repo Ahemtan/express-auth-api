@@ -12,7 +12,7 @@ const deserializeUser = async (
     return next();
   }
 
-  const decoded = verifyJwt(accessToken, "ACCESS_TOKEN_PUBLIC_KEY");
+  const decoded = verifyJwt(accessToken, "access");
 
   if (decoded) {
     res.locals.user = decoded;
