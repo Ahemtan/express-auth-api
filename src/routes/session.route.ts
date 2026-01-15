@@ -1,15 +1,13 @@
 import express from "express";
 import validateResource from "../middleware/validateResources";
 import { createSessionSchema } from "../schema/auth.schema";
-import requireUser from "../middleware/requireLogin";
-import deserializeUser from "../middleware/deserializeUser";
-
 import {
-  createSessionController,
-  refreshSessionController,
-  deleteSessionController,
-  getUserSessionsController,
+  createSessionHandler,
+  refreshAccessTokenHandler,
+  logoutHandler,
 } from "../controller/session.controller";
+import deserializeUser from "../middleware/deserializeUser";
+import requireUser from "../middleware/requireLogin";
 
 const router = express.Router();
 
@@ -17,14 +15,14 @@ const router = express.Router();
  * @swagger
  * tags:
  *   - name: Sessions
- *     description: Session management & authentication
+ *     description: User session management
  */
 
 /**
  * @swagger
  * /api/sessions:
  *   post:
- *     summary: Login (create session)
+ *     summary: Create a new session (login)
  *     tags: [Sessions]
  *     requestBody:
  *       required: true
@@ -34,60 +32,69 @@ const router = express.Router();
  *             $ref: '#/components/schemas/CreateSessionInput'
  *     responses:
  *       200:
- *         description: Session created successfully
- *   get:
- *     summary: List active user sessions (devices)
- *     tags: [Sessions]
- *     security:
- *       - csrfToken: []
- *     responses:
- *       200:
- *         description: List of active sessions
+ *         description: Session created successfully, access token & CSRF token returned
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   $ref: '#/components/schemas/UserResponse'
+ *                 accessToken:
+ *                   type: string
+ *                 csrfToken:
+ *                   type: string
  */
 router.post(
   "/api/sessions",
   validateResource({ body: createSessionSchema }),
-  createSessionController
-);
-
-router.get(
-  "/api/sessions",
-  deserializeUser,
-  requireUser,
-  getUserSessionsController
+  createSessionHandler
 );
 
 /**
  * @swagger
  * /api/sessions/refresh:
- *   post:
- *     summary: Refresh access token (rotate session)
+ *   get:
+ *     summary: Refresh access token (rotate refresh token)
  *     tags: [Sessions]
+ *     security:
+ *       - csrfToken: []
  *     responses:
  *       200:
- *         description: New access token issued
+ *         description: New access token & CSRF token returned
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                 csrfToken:
+ *                   type: string
  *       401:
- *         description: Session expired or invalid
+ *         description: Unauthorized or session expired
  */
-router.post("/api/sessions/refresh", refreshSessionController);
+router.get("/api/sessions/refresh", refreshAccessTokenHandler);
 
 /**
  * @swagger
- * /api/sessions/current:
- *   delete:
+ * /api/sessions/logout:
+ *   post:
  *     summary: Logout current session
  *     tags: [Sessions]
  *     security:
  *       - csrfToken: []
  *     responses:
  *       200:
- *         description: Logged out successfully
+ *         description: Session logged out successfully
+ *       401:
+ *         description: Unauthorized
  */
-router.delete(
-  "/api/sessions/current",
+router.post(
+  "/api/sessions/logout",
   deserializeUser,
   requireUser,
-  deleteSessionController
+  logoutHandler
 );
 
 export default router;

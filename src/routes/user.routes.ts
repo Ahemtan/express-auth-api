@@ -10,7 +10,6 @@ import {
   createUserHandler,
   forgetPasswordHandler,
   getCurrentUserHandler,
-  logoutHandler,
   resetPasswordHandler,
   verifyUserHandler,
 } from "../controller/user.controller";
@@ -143,18 +142,6 @@ router.post(
   validateResource({ body: resetPasswordSchema }),
   resetPasswordHandler
 );
-
-/**
- * @swagger
- * /api/users/logout:
- *   get:
- *     summary: Logout current user
- *     tags: [Users]
- *     responses:
- *       200:
- *         description: User logged out successfully
- */
-router.get("/api/users/logout", logoutHandler);
 
 /**
  * @swagger

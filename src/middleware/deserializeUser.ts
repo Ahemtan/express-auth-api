@@ -2,25 +2,25 @@ import { Request, Response, NextFunction } from "express";
 import { verifyJwt } from "../utils/jwt";
 import { updateSessionLastActive } from "../services/auth.service";
 
-const deserializeUser = async (
+interface AccessTokenPayload {
+  id: string;
+}
+
+export default async function deserializeUser(
   req: Request,
   res: Response,
   next: NextFunction
-) => {
-  const accessToken = req.cookies.accessToken;
+) {
+  const accessToken = req.cookies.accessToken as string;
+  if (!accessToken) return next();
 
-  if (!accessToken) {
-    return next();
-  }
+  const decoded = verifyJwt<AccessTokenPayload>(accessToken, "access");
+  if (!decoded) return next();
 
-  const decoded = verifyJwt(accessToken, "access");
+  const payload = decoded as AccessTokenPayload;
 
-  if (decoded) {
-    res.locals.user = decoded;
-    await updateSessionLastActive(decoded.id);
-  }
+  await updateSessionLastActive(payload.id);
 
+  res.locals.user = { id: payload.id };
   return next();
-};
-
-export default deserializeUser;
+}

@@ -97,7 +97,12 @@ export async function forgetPasswordHandler(
 }
 
 export async function resetPasswordHandler(
-  req: Request<ResetPasswordInput["params"], {}, ResetPasswordInput["body"]>,
+  req: Request<
+    { id: string; passwordResetCode: string },
+    {},
+    ResetPasswordInput
+  >,
+
   res: Response
 ) {
   const { id, passwordResetCode } = req.params;
