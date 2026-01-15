@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyJwt } from "../utils/jwt";
+import { updateSessionLastActive } from "../services/auth.service";
 
 const deserializeUser = async (
   req: Request,
@@ -16,6 +17,7 @@ const deserializeUser = async (
 
   if (decoded) {
     res.locals.user = decoded;
+    await updateSessionLastActive(decoded.id);
   }
 
   return next();

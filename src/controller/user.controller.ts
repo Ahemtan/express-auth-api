@@ -18,11 +18,8 @@ import {
   resetUserPassword,
 } from "../services/user.service";
 
-import { findSessionById, invalidateSession } from "../services/auth.service";
-
 import sendEmail from "../utils/mailer";
 import log from "../utils/logger";
-import { verifyJwt } from "../utils/jwt";
 
 export async function createUserHandler(
   req: Request<{}, {}, CreateUserInput>,
@@ -93,7 +90,7 @@ export async function forgetPasswordHandler(
     to: user.email,
     from: "test@example.com",
     subject: "Reset your password",
-    text: `Reset code: ${resetCode}\nUser ID: ${user.id}`,
+    text: `${process.env.APP_ORIGIN}/reset-password/${user.id}/${resetCode}`,
   });
 
   return res.send(message);
@@ -125,35 +122,4 @@ export async function resetPasswordHandler(
 
 export async function getCurrentUserHandler(req: Request, res: Response) {
   return res.send(res.locals.user);
-}
-
-export async function logoutHandler(req: Request, res: Response) {
-  const refreshToken = req.cookies.refreshToken as string;
-
-  if (!refreshToken) {
-    return res.status(401).send("Unauthorized");
-  }
-
-  const decoded = verifyJwt<{ session: string }>(
-    refreshToken,
-    "refreshTokenPublicKey"
-  );
-
-  if (!decoded) {
-    return res.status(401).send("Unauthorized");
-  }
-
-  const session = await findSessionById({ id: decoded.session });
-
-  if (!session || !session.valid) {
-    return res.status(401).send("Unauthorized");
-  }
-
-  await invalidateSession(session.id);
-
-  return res
-    .clearCookie("accessToken")
-    .clearCookie("refreshToken")
-    .status(200)
-    .send("Logged out successfully");
 }

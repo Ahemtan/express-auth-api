@@ -20,10 +20,21 @@ export const users = pgTable("users", {
 
 export const sessions = pgTable("sessions", {
   id: uuid("id").defaultRandom().primaryKey(),
+
   userId: uuid("user_id").notNull(),
-  valid: boolean("valid").default(true),
+
+  valid: boolean("valid").default(true).notNull(),
+
   ip: varchar("ip", { length: 45 }).notNull(),
+
   userAgent: varchar("user_agent", { length: 255 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+
+  deviceName: varchar("device_name", { length: 255 }),
+
+  lastActiveAt: timestamp("last_active_at").defaultNow().notNull(),
+
+  expiresAt: timestamp("expires_at").notNull(),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

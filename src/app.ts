@@ -9,6 +9,9 @@ import router from "./routes";
 import deserializeUser from "./middleware/deserializeUser";
 
 import cors from "cors";
+import cron from "node-cron";
+
+import { cleanupExpiredSessions } from "./jobs/sessionCleanup";
 import { csrfMiddleware } from "./middleware/csrf";
 import { setupSwagger } from "./swagger";
 
@@ -29,6 +32,8 @@ app.use(csrfMiddleware);
 app.use(deserializeUser);
 
 app.use(router);
+
+cron.schedule("0 * * * *", cleanupExpiredSessions);
 
 if (process.env.NODE_ENV !== "production") {
   setupSwagger(app);

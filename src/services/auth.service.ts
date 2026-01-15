@@ -1,10 +1,11 @@
 import { Response } from "express";
 import { omit } from "lodash";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { signJwt } from "../utils/jwt";
 import { db } from "../db";
 import { users, sessions } from "../db/schema";
+import { getDeviceName } from "../utils/device";
 
 type User = typeof users.$inferSelect;
 
@@ -13,6 +14,8 @@ const privateVal = [
   "verificationCode",
   "passwordResetCode",
 ] as const;
+
+const SESSION_TTL_DAYS = 30;
 
 export async function createSession({
   userId,
@@ -23,9 +26,20 @@ export async function createSession({
   ip: string;
   userAgent: string;
 }) {
+  const deviceName = getDeviceName(userAgent);
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + SESSION_TTL_DAYS);
+
   const [session] = await db
     .insert(sessions)
-    .values({ userId, ip, userAgent })
+    .values({
+      userId,
+      ip,
+      userAgent,
+      deviceName,
+      expiresAt,
+    })
     .returning();
 
   return session;
@@ -88,4 +102,25 @@ export async function invalidateAllUserSessions(userId: string) {
     .update(sessions)
     .set({ valid: false })
     .where(eq(sessions.userId, userId));
+}
+
+export async function updateSessionLastActive(sessionId: string) {
+  await db
+    .update(sessions)
+    .set({ lastActiveAt: new Date() })
+    .where(eq(sessions.id, sessionId));
+}
+
+export async function findUserSessions(userId: string) {
+  return db
+    .select({
+      id: sessions.id,
+      deviceName: sessions.deviceName,
+      ip: sessions.ip,
+      lastActiveAt: sessions.lastActiveAt,
+      createdAt: sessions.createdAt,
+      expiresAt: sessions.expiresAt,
+    })
+    .from(sessions)
+    .where(and(eq(sessions.userId, userId), eq(sessions.valid, true)));
 }

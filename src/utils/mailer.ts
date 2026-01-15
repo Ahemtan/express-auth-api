@@ -22,9 +22,8 @@ const google_transpoter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.gmail_email,
-    pass: process.env.gmail_pass
-  }
-
+    pass: process.env.gmail_pass,
+  },
 });
 
 async function sendEmail(payload: SendMailOptions) {

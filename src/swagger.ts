@@ -6,10 +6,31 @@ export function setupSwagger(app: Express) {
   const options = {
     definition: {
       openapi: "3.0.0",
-      info: { title: "Auth API", version: "1.0.0" },
+      info: {
+        title: "Session-based Auth API",
+        version: "1.0.0",
+        description: "User & session management with device tracking",
+      },
+
+      tags: [
+        { name: "Sessions", description: "Login, logout, refresh, devices" },
+        { name: "Users", description: "User account lifecycle" },
+      ],
+
       components: {
+        securitySchemes: {
+          csrfToken: {
+            type: "apiKey",
+            in: "header",
+            name: "x-csrf-token",
+          },
+        },
+
         schemas: {
-          // Auth schemas
+          /* =====================
+             SESSION SCHEMAS
+          ====================== */
+
           CreateSessionInput: {
             type: "object",
             required: ["email", "password"],
@@ -18,14 +39,42 @@ export function setupSwagger(app: Express) {
               password: { type: "string", example: "StrongP@ssw0rd" },
             },
           },
-          RefreshSessionResponse: {
+
+          SessionResponse: {
             type: "object",
             properties: {
-              csrfToken: { type: "string", example: "newCsrfToken123" },
+              id: { type: "string", example: "session-uuid" },
+              deviceName: { type: "string", example: "MacBook Pro" },
+              ip: { type: "string", example: "192.168.1.1" },
+              lastActiveAt: {
+                type: "string",
+                format: "date-time",
+              },
+              createdAt: {
+                type: "string",
+                format: "date-time",
+              },
+              expiresAt: {
+                type: "string",
+                format: "date-time",
+              },
             },
           },
 
-          // User schemas
+          RefreshSessionResponse: {
+            type: "object",
+            properties: {
+              accessToken: {
+                type: "string",
+                example: "new.jwt.access.token",
+              },
+            },
+          },
+
+          /* =====================
+             USER SCHEMAS
+          ====================== */
+
           CreateUserInput: {
             type: "object",
             required: ["email", "password"],
@@ -34,25 +83,36 @@ export function setupSwagger(app: Express) {
               password: { type: "string", example: "StrongP@ssw0rd" },
             },
           },
+
           VerifyUserInput: {
             type: "object",
+            required: ["verificationCode"],
             properties: {
-              email: { type: "string", example: "user@example.com" },
+              verificationCode: {
+                type: "string",
+                example: "uuid-verification-code",
+              },
             },
           },
+
           ForgetPasswordInput: {
             type: "object",
             properties: {
               email: { type: "string", example: "user@example.com" },
             },
           },
+
           ResetPasswordInput: {
             type: "object",
-            required: ["newPassword"],
+            required: ["password"],
             properties: {
-              newPassword: { type: "string", example: "NewStrongP@ssw0rd" },
+              password: {
+                type: "string",
+                example: "NewStrongP@ssw0rd",
+              },
             },
           },
+
           UserResponse: {
             type: "object",
             properties: {
@@ -62,21 +122,15 @@ export function setupSwagger(app: Express) {
               createdAt: {
                 type: "string",
                 format: "date-time",
-                example: "2026-01-13T12:00:00Z",
               },
             },
           },
         },
-        securitySchemes: {
-          csrfToken: {
-            type: "apiKey",
-            in: "header",
-            name: "x-csrf-token",
-          },
-        },
       },
     },
-    apis: ["./src/routes/*.ts"], // make sure this path matches your project
+
+    // Auto-load docs from route files
+    apis: ["./src/routes/*.ts"],
   };
 
   const specs = swaggerJSDoc(options);
